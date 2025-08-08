@@ -1,1 +1,2301 @@
+@using XMLTOPDF
+<!DOCTYPE html>
+<html>
 
+<head>
+    <script>
+        function subst() {
+            var vars = {};
+            var query_strings_from_url = document.location.search.substring(1).split('&');
+            for (var query_string in query_strings_from_url) {
+                if (query_strings_from_url.hasOwnProperty(query_string)) {
+                    var temp_var = query_strings_from_url[query_string].split('=', 2);
+                    vars[temp_var[0]] = decodeURI(temp_var[1]);
+                }
+            }
+            if (vars['page'] == 1) {
+                var tabla = document.getElementById("encabezado");
+                tabla.innerHTML = "<div class='head' style='height: 5mm;'></div>"
+            }
+            var css_selector_classes = ['page', 'frompage', 'topage', 'webpage', 'section', 'subsection', 'date', 'isodate', 'time', 'title', 'doctitle', 'sitepage', 'sitepages'];
+            for (var css_class in css_selector_classes) {
+                if (css_selector_classes.hasOwnProperty(css_class)) {
+                    var element = document.getElementsByClassName(css_selector_classes[css_class]);
+                    for (var j = 0; j < element.length; ++j) {
+                        element[j].textContent = vars[css_selector_classes[css_class]];
+                    }
+                }
+            }
+        }
+    </script>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px
+        }
+
+        .center {
+            text-align: center;
+            justify-content: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body onload="subst()">
+    @if(Model.Comprobante.InformacionGlobal != null || Model.Comprobante.CartaPorte != null ||
+    Model.Comprobante.CartaPorte30 != null){
+    <div id="encabezado">
+        <table style="width: 100%" class="bold">
+            <tr>
+                <td>@Model.Comprobante.Emisor.Nombre</td>
+                <td></td>
+                <td rowspan="2" class="center" style="font-size: large; color: red;">
+                    @Model.Comprobante.Serie@Model.Comprobante.Folio</td>
+            </tr>
+            <tr>
+                <td>@Model.Comprobante.Emisor.Rfc</td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                @if(Model.Comprobante.TimbreFiscalDigital != null){
+                <td>FOLIO FISCAL: @Model.Comprobante.TimbreFiscalDigital.UUID</td>
+                }else{
+                <td>vista previa</td>
+                }
+                <td rowspan="2">Fecha de emision: @Model.Comprobante.Fecha</td>
+                <td class="center">@Model.Comprobante.TipoDeComprobante</td>
+            </tr>
+        </table>
+    </div>
+    }else{
+    <div class="head" style="height: 5mm;">
+        <!-- Encabezado vacio con ancho fijo para secciones sin encabezado -->
+    </div>
+    }
+</body>
+
+</html><!-- !!!!!!!!!!!!!!!SECTION SEPARATOR!!!!!!!!!!!!!!! --><html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-16">
+    
+    <link rel="stylesheet" href="@Model.EstilosCSS">
+    <link rel="stylesheet" href="@Model.BootstrapCSS">
+</head>
+
+<body>
+    <div class="cfdi">
+        <div class="DatosFactura">
+            <div class="container mt-4 fs-cfdi-5">
+                <table class="info">
+                    <tr>
+                        <td style="width: 40%;">
+                            <table>
+                                <tr>
+                                    <td class="bold">@Model.Comprobante.Emisor.Nombre</td>
+                                </tr>
+                                <tr>
+                                    <td class="bold">@Model.Comprobante.Emisor.Rfc</td>
+                                </tr>
+                                <tr>
+                                    @if(Model.Comprobante.AdendaRfacil != null && Model.Comprobante.AdendaRfacil.Emisor
+                                    != null){
+                                    <td class="font-timbre">
+                                        <span>@PDF.GetDomicilio(false, (Comprobante)Model.Comprobante)[0]</span><br>
+                                        <span>@PDF.GetDomicilio(false, (Comprobante)Model.Comprobante)[1]</span><br>
+                                    </td>
+                                    }
+                                </tr>
+                            </table>
+                        </td>
+                        @if(!string.IsNullOrEmpty(PDF.GetLogoPath(Model.Comprobante.Emisor.Rfc))){
+                        <td style="width: 300px; margin: 0px;">
+                            <div class="logo-container">
+                                <img src="@PDF.GetLogoPath(Model.Comprobante.Emisor.Rfc)" alt="Logo de la empresa">
+                            </div>
+                        </td>
+                        }
+                        <td style="width: 32%;">
+                            <div class="border border-bottom border-2 border-dark p-3"
+                                style="line-height: 1.5mm; border-radius: 13px;">
+                                <h2 class="text-danger text-center">@Model.Comprobante.Serie@Model.Comprobante.Folio
+                                </h2>
+                                <p class="mt-2 text-center" style="font-size: 9pt;">Tipo de Comprobante</p>
+                                <p class="mt-2 text-center" style="font-size: 9pt;"> @Model.Comprobante.TipoDeComprobante - @PDF.GetValor(Model.Comprobante.TipoDeComprobante, "Tipo")</p>
+                            </div>
+                        </td>
+
+                    </tr>
+                </table>
+
+                <div class="row b-bottom mt-1 mb-1 info">
+                    <div style="padding-left: 15px;">RÉGIMEN FISCAL: @Model.Comprobante.Emisor.RegimenFiscal
+                        @PDF.GetValor(Model.Comprobante.Emisor.RegimenFiscal, "RegimenFiscal")</div>
+
+                </div>
+
+                <div class="row info">
+                    <div class="col-6">
+                        <div class="bold fsp-4">Cliente: @Model.Comprobante.Receptor.Rfc</div>
+                        <div class="bold fsp-4">@Model.Comprobante.Receptor.Nombre</div>
+                        @if(Model.Comprobante.AdendaRfacil != null && Model.Comprobante.AdendaRfacil.Receptor != null){
+                        if (!string.IsNullOrEmpty(PDF.GetDomicilio(true, (Comprobante)Model.Comprobante)[0]) ||
+                        !string.IsNullOrEmpty(PDF.GetDomicilio(true, (Comprobante)Model.Comprobante)[1]))
+                        {
+                        <div class="fsp-4">
+                            @PDF.GetDomicilio(true, (Comprobante)Model.Comprobante)[0]
+                            @PDF.GetDomicilio(true, (Comprobante)Model.Comprobante)[1]
+                        </div>
+                        }
+                        }
+                        <div class="fsp-4">Uso Cfdi: @Model.Comprobante.Receptor.UsoCFDI
+                            @PDF.GetValor(@Model.Comprobante.Receptor.UsoCFDI, "UsoCFDI")</div>
+
+                    </div>
+                    <div class="col-6">
+                        <div class="bold fsp-4">
+                            CUENTA PREDIAL: @PDF.GetPredial((Comprobante)Model.Comprobante)
+                        </div>
+
+                        <div class="bold fsp-4">UBICACIÓN DEL PREDIO:
+                            @if(Model.Comprobante.AdendaRfacil != null){
+                            @Model.Comprobante.AdendaRfacil.Campo02
+                            }
+                        </div>
+                        @if (Model.Comprobante.AdendaRfacil != null &&
+                        !string.IsNullOrWhiteSpace(Model.Comprobante.AdendaRfacil.Campo06)) {
+                        <div class="bold fsp-4">
+                            @Model.Comprobante.AdendaRfacil.Campo06.Trim()
+                        </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+        <div class="Conceptos mt-4">
+            
+<div class="Conceptos mt-4 info">
+    <table class="custom-table font-timbre mb-2">
+        <thead>
+            <tr hidden>
+                <th colspan="5"></th>
+            </tr>
+            <tr class="text-center">
+                <th>Cantidad</th>
+                <th>Descripción</th>
+                <th>Unidad de Medida</th>
+                <th>Precio Unitario</th>
+                <th>Importe</th>
+            </tr>
+            <tr>
+                <th colspan="5"></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach(var oConcepto in Model.Comprobante.Conceptos)
+            {
+            <tr>
+                <td>@oConcepto.Cantidad</td>
+                <td>@oConcepto.Descripcion</td>
+                <td>@oConcepto.ClaveUnidad</td>
+                <td>@oConcepto.ValorUnitario</td>
+                <td>@oConcepto.Importe</td>
+            </tr>
+            }
+
+        </tbody>
+    </table>
+
+    <table class="mt-4 info" style="margin-top: 130px;">
+        <tbody class="font-timbre bold">
+            <tr class="bold">
+                <td style="width: 75%;"></td>
+                <td class="text-start">Subtotal: </td>
+                <td class="text-end">@PDF.Commas(Model.Comprobante.SubTotal)</td>
+            </tr>
+            @if(Model.Comprobante.Descuento != null && Model.Comprobante.Descuento > 0){
+                <tr class="bold">
+                    <td colspan="4"></td>
+                    <td>Descuento:</td>
+                    <td colspan="2" class="text-end">
+                        @PDF.Commas(Model.Comprobante.Descuento)</td>
+                </tr>
+            }
+            @if(Model.Comprobante.Impuestos != null){
+            if(Model.Comprobante.Impuestos.Traslados != null){
+            foreach(var oTraslado in Model.Comprobante.Impuestos.Traslados){
+            <tr class="bold">
+                <td style="width: 75%;"></td>
+                <td class="text-start">@PDF.GetValor(oTraslado.Impuesto, "TipoImpuesto") (T) @((oTraslado.TasaOCuota *
+                    100).ToString("#.00"))%</td>
+                <td class="text-end">@PDF.Commas(oTraslado.Importe)</td>
+            </tr>
+            }
+            }
+            if(Model.Comprobante.Impuestos.Retenciones != null){
+            foreach(var oRete in Model.Comprobante.Impuestos.Retenciones){
+            <tr class="bold">
+                <td style="width: 75%;"></td>
+                <td class="text-start">@PDF.GetValor(oRete.Impuesto, "TipoImpuesto") (R) @(((oRete.Importe /
+                    Model.Comprobante.SubTotal)*100).ToString("#.00"))%</td>
+                <td class="text-end">@PDF.Commas(oRete.Importe)</td>
+            </tr>
+            }
+            }
+            }
+            @if(Model.Comprobante.ImpuestosLocales != null){
+            if(Model.Comprobante.ImpuestosLocales.RetencionesLocales != null){
+            foreach(var RetencionLocal in Model.Comprobante.ImpuestosLocales.RetencionesLocales){
+            <tr class="bold">
+                <td style="width: 75%;"></td>
+                <td class="text-start">@RetencionLocal.ImpLocRetenido @RetencionLocal.TasadeRetencion%</td>
+                <td class="text-end">@PDF.Commas(RetencionLocal.Importe)</td>
+            </tr>
+            }
+            }
+            if(Model.Comprobante.ImpuestosLocales.TrasladosLocales != null){
+            foreach(var TrasladoLocal in Model.Comprobante.ImpuestosLocales.TrasladosLocales){
+            <tr class="bold">
+                <td style="width: 75%;"></td>
+                <td class="text-start">@TrasladoLocal.ImpLocTrasladado @TrasladoLocal.TasadeTraslado%</td>
+                <td class="text-end">@PDF.Commas(TrasladoLocal.Importe)</td>
+            </tr>
+            }
+            }
+            }
+            <tr>
+                <td style="width: 75%; font-weight: lighter;" class="fsp-4">@Model.Comprobante.Receptor.Nombre</td>
+                <td class="text-start fsp-3">Total:</td>
+                    <td class="text-end fsp-3">@PDF.Commas(Model.Comprobante.Total)</td>
+
+            </tr>
+        </tbody>
+
+    </table>
+</div>
+
+
+        </div>
+        <div class="complemento info mt-3" hidden="@PDF.OcultarComplementoSeccion((Comprobante)Model.Comprobante, true)">
+            
+
+<!-- CARTAPORTE PRINCIPAL PIE AF -->
+@if(Model.CartaPorte.Version != "2.0"){
+    <div class="fs-cartaporte-5 text-center">
+        <span class="bold">IDCCP: </span>@Model.CartaPorte.IdCCP
+    </div>
+}
+<table class="fs-cartaporte-5 b-bottom">
+    <tbody>
+        <tr>
+            <td colspan="6" class="bold  text-center b-concepto-bottom">CARTA PORTE @Model.CartaPorte.Version </td>
+        </tr>
+        <tr>
+            <td><span class="bold">Transporte Nacional:</span> @Model.CartaPorte.TranspInternac</td>
+            <td><span class="bold">Tipo de Movimiento:</span> @Model.CartaPorte.EntradaSalidaMerc</td>
+            <td><span class="bold">Via de Ingreso:</span> @Model.CartaPorte.ViaEntradaSalida</td>
+            <td><span class="bold">Distancia Recorrida: </span>@Model.CartaPorte.TotalDistRec</td>
+            @if(Model.CartaPorte.Version == "3.0")
+            {
+                <td><span class="bold">Régimen aduanero:</span> @Model.CartaPorte.RegimenAduanero</td>
+                <td><span class="bold">Registro ITSMO:</span> @Model.CartaPorte.RegistroISTMO</td>
+            }
+        </tr>
+    </tbody>
+</table>
+
+@if(Model.CartaPorte.Mercancias != null){
+<!-- CARTAPORTE MERCANCIAS PIE AG -->
+<table class="fs-cartaporte-5 b-bottom">
+    <tbody>
+        <tr>
+            <td colspan="6" class="bold  text-center b-concepto-bottom">MERCANCIAS</td>
+        </tr>
+        <tr>
+            <td><span class="bold ">Peso Bruto Total: </span>@Model.CartaPorte.Mercancias.PesoBrutoTotal</td>
+            <td><span class="bold ">Unidad de Peso: </span>@Model.CartaPorte.Mercancias.UnidadPeso</td>
+            <td><span class="bold ">Peso Neto Total: </span>@Model.CartaPorte.Mercancias.PesoNetoTotal</td>
+            <td><span class="bold ">No. Mercancias: </span>@Model.CartaPorte.Mercancias.NumTotalMercancias</td>
+            <td><span class="bold ">Cargo Por Tasación: </span>@Model.CartaPorte.Mercancias.CargoPorTasacion</td>
+            @if(Model.CartaPorte.Version == "3.0")
+            {
+                <td><span class="bold">Logistica Inversa</span>@Model.CartaPorte.Mercancias.LogisticaInversaRecoleccionDevolucion</td>
+            }
+        </tr>
+    </tbody>
+</table>
+}
+
+@if(Model.CartaPorte.Version == "3.1" && Model.CartaPorte.RegimenesAduaneros != null){
+<!-- CARTAPORTE MERCANCIAS PIE AG -->
+<table class="fs-cartaporte-5 b-bottom text-center">
+    <tbody>
+        <tr>
+            <td class="bold text-center b-concepto-bottom">REGIMENES ADUENEROS</td>
+        </tr>
+        @foreach(var regimen in Model.CartaPorte.RegimenesAduaneros)
+        {
+            <tr>
+                <td class="full">@regimen.RegimenAduanero - @PDF.GetValor(@regimen.RegimenAduanero, "Regimen")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+}
+
+@{int OrigenCounter = 0 ;}
+@if(Model.CartaPorte.Ubicaciones != null && Model.CartaPorte.Ubicaciones.Count > 0)
+{
+    <!-- CARTAPORTE UBICACIONES PIE AH -->
+    <div class="OrigenCartaPorte">
+        <table class="fs-cartaporte-5">
+            <tbody>
+                <tr>
+                    <td colspan="7" class="bold fs-cartaporte-5 text-center b-concepto-bottom">UBICACIONES</td>
+                </tr>
+                <tr>
+                    <td colspan="7" class="bold fs-cartaporte-5 text-center">ORIGEN</td>
+                </tr>
+                <tr>
+                    <td class="bold b-bottom">ID Origen</td>
+                    <td class="bold b-bottom">RFC / Reg. Id Fiscal</td>
+                    <td class="bold b-bottom">Nombre del Destinatario</td>
+                    <td class="bold b-bottom">Recidencia Fiscal</td>
+                    <td class="bold b-bottom">Datos de la Estación</td>
+                    <td class="bold b-bottom">Tipo Navegación</td>
+                    <td class="bold b-bottom">Fecha Aprox. LLegada</td>
+                </tr>
+                @foreach(var ubicacion in Model.CartaPorte.Ubicaciones)
+                {
+                    if(OrigenCounter == 0)
+                    {
+                        <tr>
+                            <td>@ubicacion.IDUbicacion</td>
+                            <td>@ubicacion.RFCRemitenteDestinatario</td>
+                            <td>@ubicacion.NombreRemitenteDestinatario</td>
+                            <td>@ubicacion.ResidenciaFiscal</td>
+                            <td>@ubicacion.TipoEstacion</td>
+                            <td>@ubicacion.TipoUbicacion</td>
+                            <td>@ubicacion.FechaHoraSalidaLlegada</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="bold b-bottom">Domicilio Completo</td>
+                        </tr>
+                        @if(ubicacion.Domicilio != null){
+                        <tr>
+                            <td colspan="4" class="fs-cartaporte-5 text-break">
+                                @ubicacion.Domicilio.Calle @ubicacion.Domicilio.NumeroExterior @ubicacion.Domicilio.Localidad
+                                @ubicacion.Domicilio.Colonia @ubicacion.Domicilio.Estado @ubicacion.Domicilio.CodigoPostal
+                                @ubicacion.IDUbicacion @ubicacion.NombreRemitenteDestinatario
+                            </td>
+                        </tr>
+                        }
+                        <tr>
+                            <td colspan="7" class="b-bottom">Sucursal / Domicilio Origen: @ubicacion.IDUbicacion
+                                @ubicacion.NombreRemitenteDestinatario</td>
+                        </tr>
+                    }
+                    OrigenCounter ++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+
+<!-- CARTAPORTE DESTINOS PIE AI -->
+@{int counter = 1;}
+@if(Model.CartaPorte.Ubicaciones != null)
+{
+    foreach (var destino in Model.CartaPorte.Ubicaciones)
+    {
+        if(counter > 1)
+        {
+            <div class="DESTINOS-CARTAPORTE">
+                <table class="fs-cartaporte-5">
+                    <tbody>
+                        <tr>
+                            <td colspan="7" class="text-center bold ">DESTINO</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><span class="bold ">Tipo de Estación: @destino.TipoEstacion</span></td>
+                            <td colspan="4"><span class="bold ">Distancia Recorrida: @destino.DistanciaRecorrida</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bold b-bottom">ID Destino</td>
+                            <td class="bold b-bottom">RFC / Reg. Id Fiscal</td>
+                            <td class="bold b-bottom">Nombre del Destinatario</td>
+                            <td class="bold b-bottom">Recidencia Fiscal</td>
+                            <td class="bold b-bottom">Datos de la Estación</td>
+                            <td class="bold b-bottom">Tipo Navegación</td>
+                            <td class="bold b-bottom">Fecha Aprox. LLegada</td>
+                        </tr>
+                        <tr>
+                            <td>@destino.IDUbicacion</td>
+                            <td>@destino.RFCRemitenteDestinatario</td>
+                            <td>@destino.NombreRemitenteDestinatario</td>
+                            <td>@destino.ResidenciaFiscal</td>
+                            <td>@destino.TipoEstacion</td>
+                            <td>@destino.TipoUbicacion</td>
+                            <td>@destino.FechaHoraSalidaLlegada</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="b-bottom bold ">Domicilio Completo</td>
+                        </tr>
+                        @if(destino.Domicilio != null){
+                        <tr>
+                            <td colspan="7">@destino.Domicilio.Calle
+                                @destino.Domicilio.NumeroExterior @destino.Domicilio.Localidad
+                                @destino.Domicilio.Colonia</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7">@destino.Domicilio.Estado @destino.Domicilio.CodigoPostal</td>
+                        </tr>
+                        }
+                        <tr>
+                            <td colspan="7" class="b-bottom  ">Sucursal / Domicilio Destino: @destino.IDUbicacion
+                                @destino.NombreRemitenteDestinatario</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="b-bottom bold  text-center">Mercancias</td>
+                        </tr>
+                        @if(Model.CartaPorte.Mercancias != null && Model.CartaPorte.Mercancias.Mercancia != null)
+                        {
+                            foreach (var Mercancia in Model.CartaPorte.Mercancias.Mercancia)
+                            {
+                                if(Mercancia.CantidadTransporta != null)
+                                {
+                                    foreach(var Cantidad in Mercancia.CantidadTransporta)
+                                    {
+                                        if(destino.IDUbicacion == Cantidad.IDDestino)
+                                        {
+                                            <tr>
+                                                <td><span class="bold">Clave Unidad: </span>@Mercancia.ClaveUnidad</td>
+                                                <td><span class="bold">Clave Bien/Producto: </span>@Mercancia.BienesTransp</td>
+                                                <td colspan="3"><span class="bold">Descripción: </span>@Mercancia.Descripcion</td>
+                                                <td><span class="bold">Cantidad: </span>@Cantidad.Cantidad</td>
+                                                <td><span class="bold">Peso: </span>@Mercancia.PesoEnKg</td>
+                                            </tr>
+                                            if(Mercancia.CveMaterialPeligroso != null)
+                                            {
+                                                <tr>
+                                                    <td colspan="7">
+                                                        <span class="bold">Material Peligroso: </span>@Mercancia.MaterialPeligroso&nbsp;&nbsp;&nbsp;
+                                                        <span class="bold">Clave Mat. Peligroso:
+                                                        </span>@Mercancia.CveMaterialPeligroso&nbsp;&nbsp;&nbsp;
+                                                        <span class="bold">Embalaje: </span>@Mercancia.Embalaje
+                                                    </td>
+                                                </tr>
+                                            }
+                                            if(Mercancia.FraccionArancelaria != null && Mercancia.UUIDComercioExt != null)
+                                            {
+                                                <tr>
+                                                    <td colspan="7">
+                                                        <span class="bold">Fraccion Arancelaria: </span>@Mercancia.FraccionArancelaria&nbsp;&nbsp;&nbsp;
+                                                        <span class="bold">UUID Comercio Exterior: </span>@Mercancia.UUIDComercioExt
+                                                    </td>
+                                                </tr>
+                                            }
+                                            if(Mercancia.ClaveSTCC != null)
+                                            {
+                                                <tr>
+                                                    <td colspan="7"><span class="bold">Clave STCC: </span>@Mercancia.ClaveSTCC</td>
+                                                </tr>
+                                            }
+                                            if(Model.CartaPorte.Version == "3.0" && Mercancia.SectorCOFEPRIS != null)
+                                            {
+                                                <tr>
+                                                    <td class="b-bottom"><span class="bold">Sector COFEPRIS: </span> @Mercancia.SectorCOFEPRIS</td>
+                                                    <td class="b-bottom"><span class="bold">Nombre Ingrediente Activo: </span>
+                                                        @Mercancia.NombreIngredienteActivo</td>
+                                                    <td class="b-bottom"><span class="bold">Nombre Quimico: </span> @Mercancia.NomQuimico</td>
+                                                    <td class="b-bottom"><span class="bold">Lote Medicamento: </span> @Mercancia.LoteMedicamento</td>
+                                                    <td class="b-bottom"><span class="bold">Forma Farmaceutica: </span> @Mercancia.FormaFarmaceutica
+                                                    </td>
+                                                    <td class="b-bottom"><span class="bold">Condiciones de transporte especiales: </span>
+                                                        @Mercancia.CondicionesEspTransp</td>
+                                                    <td class="b-bottom"><span class="bold">Permiso Importacion: </span> @Mercancia.PermisoImportacion
+                                                    </td>
+                                                </tr>
+                                            }
+                                            else
+                                            {
+                                                <tr>
+                                                    <td colspan="7" class="b-bottom"></td>
+                                                </tr>
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        counter++;
+    }
+}
+<!-- CARTAPORTE PEDIMIENTOS PIE AJ -->
+@if(Model.CartaPorte.Version == "2.0" && Model.CartaPorte.Mercancias.Mercancia != null){
+<table class="fs-cartaporte-5">
+    <tr>
+        <td colspan="2" class="text-center bold fsp-5 b-concepto-bottom">PEDIEMENTO</td>
+    </tr>
+    @foreach(var MP in Model.CartaPorte.Mercancias.Mercancia)
+    {
+        if(MP.Pedimentos != null)
+        {
+            foreach(var pedimento in MP.Pedimentos)
+            {
+            <tr>
+                <td class="diez" class="bold">Pedimento:</td>
+                <td>@pedimento.Pedimento</td>
+            </tr>
+            }
+        }
+    }
+</table>
+}
+<!-- CARTAPORTE GUIAS DE IDENTIFICACION PIE AK -->
+@if(Model.CartaPorte.Mercancias.Mercancia != null)
+{
+    foreach(var MGI in Model.CartaPorte.Mercancias.Mercancia)
+    {
+        if(MGI.GuiasIdentificacion != null)
+        {
+            foreach(var guia in MGI.GuiasIdentificacion)
+            {
+            <table class="fs-cartaporte-5">
+                <tr>
+                    <td colspan="2" class="text-center bold fsp-5 b-concepto-bottom">GUIAS IDENTIFICACION</td>
+                </tr>
+                <tr>
+                    <td><span class="bold">No. Guía Identificación:</span> @guia.NumeroGuiaIdentificacion</td>
+                </tr>
+                <tr>
+                    <td><span class="bold">Descripción Guía Identificación:</span> @guia.DescripGuiaIdentificacion</td>
+                </tr>
+                <tr>
+                    <td class="b-bottom"><span class="bold">Peso Guía Identificación:</span> @guia.PesoGuiaIdentificacion</td>
+                </tr>
+            </table>
+            }
+        }
+    }
+}
+
+<!-- CARTAPORTE AUTOTRANSPORTE DE CARGA PIE Al-->
+@if(Model.CartaPorte.Mercancias != null && Model.CartaPorte.Mercancias.Autotransporte != null)
+{
+<table class="fs-cartaporte-5 b-bottom">
+    <tbody>
+        <tr>
+            <td colspan="4" class="bold text-center fsp-5 b-concepto-bottom">AUTOTRANSPORTE DE CARGA</td>
+        </tr>
+        <tr>
+            <td class="bold">Tipo Persmiso:</td>
+            <td>@Model.CartaPorte.Mercancias.Autotransporte.PermSCT</td>
+            <td class="bold">No. Permiso SCT</td>
+            <td>@Model.CartaPorte.Mercancias.Autotransporte.NumPermisoSCT</td>
+        </tr>
+        @if(Model.CartaPorte.Version == "3.0" || Model.CartaPorte.Version == "3.1")
+        {
+        <tr>
+            <td class="bold b-bottom">Peso Bruto Vehícular</td>
+            @{
+                var IdentificacionVehicular = "";
+                if(Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular != null)
+                {
+                    IdentificacionVehicular = Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.PesoBrutoVehicular;
+                }else{
+                    IdentificacionVehicular = "NA";
+                }
+            }
+            <td class="b-bottom">@IdentificacionVehicular</td>
+            <td class="bold b-bottom"></td>
+            <td class="b-bottom"></td>
+        </tr>
+        }
+
+        @if(Model.CartaPorte.Mercancias.Autotransporte.Seguros != null)
+        {
+        <tr>
+            <td class="bold b-bottom">Nombre Aseguradores</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.Seguros.AseguraRespCivil</td>
+            <td class="bold b-bottom">No. Poliza de Seguro</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.Seguros.PolizaRespCivil</td>
+        </tr>
+        }
+        @if(Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular != null)
+        {
+        <tr>
+            <td class="bold" colspan="2">Tipo Auto Transporte:</td>
+            <td colspan="2">@Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.ConfigVehicular</td>
+        </tr>
+        <tr>
+            <td class="bold b-bottom">No. Placa</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.PlacaVM</td>
+            <td class="bold b-bottom">Año del Modelo del Auto Transporte:</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.AnioModeloVM</td>
+        </tr>
+        }
+        <!-- puede que truene -->
+        @{var Seguros = Model.CartaPorte.Mercancias.Autotransporte.Seguros != null ? Model.CartaPorte.Mercancias.Autotransporte.Seguros : null;}
+        @if(Seguros != null)
+        {
+        <tr>
+            <td colspan="4">
+                <table class="fs-cartaporte-5 Info info">
+                    <tr class="bold text-center">
+                        <td>SEGUROS</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <p><span class="bold">Aseguradora de responsabilidad civil:
+                                </span>@Seguros.AseguraRespCivil</p>
+                            <p><span class="bold">No. Póliza de seguro por responsabilidad civil:
+                                </span>@Seguros.PolizaRespCivil</p>
+                            <p><span class="bold">Aseguradora de daños al medio ambiente:
+                                </span>@Seguros.AseguraMedAmbiente</p>
+                            <p><span class="bold">No. Póliza de seguro por daños al medio ambiente:
+                                </span>@Seguros.PolizaMedAmbiente</p>
+                            <p><span class="bold">Aseguradora de la carga transportada: </span>@Seguros.AseguraCarga
+                            </p>
+                            <p><span class="bold">No. póliza de seguro de la carga transportada:
+                                </span>@Seguros.PolizaCarga</p>
+                            <p><span class="bold">Valor de la prima del seguro: </span>@Seguros.PrimaSeguro</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        }
+        @if(Model.CartaPorte.Mercancias.Autotransporte.Remolques != null)
+        {
+        <tr>
+            <td colspan="4">
+                <table class="fs-cartaporte-5 Info info cincuenta">
+                    <tr>
+                        <td colspan="2" class="bold text-center">REMOLQUES</td>
+                    </tr>
+                    <tr>
+                        <th class="b-bottom">Placa</th>
+                        <th class="b-bottom">Tipo Remolque</th>
+                    </tr>
+                    <tr>
+                        @foreach(var Remolque in Model.CartaPorte.Mercancias.Autotransporte.Remolques){
+                        <td><span class="bold">Placa: </span>@Remolque.Placa</td>
+                        <td><span class="bold">Tipo de Remolque: </span>@Remolque.SubTipoRem</td>
+                        }
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>
+}
+
+<!-- TRANSPORTE MARITIMO PIE AM -->
+@if(Model.CartaPorte.Mercancias.TransporteMaritimo != null)
+{
+    var maritimo = Model.CartaPorte.Mercancias.TransporteMaritimo;
+    if(maritimo != null)
+    {
+    <table class="fs-cartaporte-5">
+        <tbody>
+            <tr>
+                <td colspan="6" class="bold b-concepto-bottom fsp-5 text-center">TRANSPORTE MARÍTIMO</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo Permiso SCT:</td>
+                <td>@maritimo.PermSCT</td>
+                <td class="bold">Nombre Aseguradora: </td>
+                <td>@maritimo.NombreAseg</td>
+                <td class="bold">No. OMI:</td>
+                <td>@maritimo.NumeroOMI</td>
+            </tr>
+            <tr>
+                <td class="bold">No. Póliza de Seguro:</td>
+                <td>@maritimo.NumPolizaSeguro</td>
+                <td class="bold">Matrícula: </td>
+                <td>@maritimo.Matricula</td>
+                <td class="bold">Nacionalidad:</td>
+                <td>@maritimo.NacionalidadEmbarc</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo Embarcación:</td>
+                <td>@maritimo.TipoEmbarcacion</td>
+                <td class="bold">Año Embarcación: </td>
+                <td>@maritimo.AnioEmbarcacion</td>
+                <td class="bold">Unidades de Arqueo Bruto: </td>
+                <td>@maritimo.UnidadesDeArqBruto</td>
+            </tr>
+            <tr>
+                <td class="bold">Nombre Embarcación:</td>
+                <td>@maritimo.NombreEmbarc</td>
+                <td class="bold">No. ITC: </td>
+                <td>@maritimo.NumCertITC</td>
+                <td class="bold">Calado: </td>
+                <td>@maritimo.Calado</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo de Carga:</td>
+                <td>@maritimo.TipoCarga</td>
+                <td class="bold">Manga: </td>
+                <td>@maritimo.Manga</td>
+                <td class="bold">No.Conocimiento de E.: </td>
+                <td>@maritimo.NumConocEmbarc</td>
+            </tr>
+            <tr>
+                <td class="bold">Eslora: </td>
+                <td>@maritimo.Eslora pies</td>
+                <td class="bold">Agente Naviero: </td>
+                <td>@maritimo.NombreAgenteNaviero</td>
+            </tr>
+            <tr>
+                <td class="bold">Linea Naviera:</td>
+                <td>@maritimo.LineaNaviera</td>
+                <td class="bold">No. Viaje: </td>
+                <td>@maritimo.NumViaje</td>
+            </tr>
+            <tr>
+                <td class="bold">No. Autorización Agente Naviero:</td>
+                <td>@maritimo.NumAutorizacionNaviero</td>
+                <td class="bold">No. Permiso SCT:</td>
+                <td>@maritimo.NumPermisoSCT</td>
+            </tr>
+
+            @if(Model.CartaPorte.Mercancias.TransporteMaritimo.Contenedor != null)
+            {
+                <tr>
+                    <td colspan="6" class="text-center bold b-bottom b-top">CONTENEDORES</td>
+                </tr>
+                <tr>
+                    <td class="bold" colspan="2">Matrícula</td>
+                    <td class="bold" colspan="2">No. Precinto</td>
+                    <td class="bold" colspan="2">Tipo Contenedor</td>
+                </tr>
+                foreach(var Contenedor in Model.CartaPorte.Mercancias.TransporteMaritimo.Contenedor)
+                {
+                    <tr>
+                        <td colspan="2">@Contenedor.MatriculaContenedor</td>
+                        <td colspan="2">@Contenedor.TipoContenedor</td>
+                        <td colspan="2">@Contenedor.NumPrecinto</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    }
+}
+
+<!-- TRANSPORTE FERREO PIE AN -->
+@if(Model.CartaPorte.Mercancias.TransporteFerroviario != null)
+{
+    var Ferroviario = Model.CartaPorte.Mercancias.TransporteFerroviario;
+    <table class="fs-cartaporte-5">
+        <tbody class="b-bottom">
+            <tr>
+                <td class="b-concepto-bottom bold text-center" colspan="6">TRANSPORTE FERROVIARIO</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo de Servicio:</td>
+                <td>@Ferroviario.TipoDeServicio</td>
+                <td class="bold">Nombre Aseguradora:</td>
+                <td>@Ferroviario.NombreAseg</td>
+                <td class="bold">Tipo de Tráfico:</td>
+                <td>@Ferroviario.TipoDeTrafico</td>
+            </tr>
+            <tr>
+                <td class="bold">No. Póliza Seguro:</td>
+                <td>@Ferroviario.NumPolizaSeguro</td>
+                <td class="bold">RFC del Concesionario:</td>
+                <td></td>
+                <td class="bold"></td>
+                <td></td>
+            </tr>
+            @if(Ferroviario.Carro != null)
+            {
+                <tr>
+                    <td colspan="6" class="text-center bold">INFORMACIÓN DEL CARRO</td>
+                </tr>
+                foreach(var carro in Ferroviario.Carro)
+                {
+                    <tr>
+                        <td colspan="2">Tipo Carro: @carro.TipoCarro</td>
+                        <td colspan="2">No. Matrícula Carro: @carro.MatriculaCarro</td>
+                        <td>No. Guía del Carro: @carro.GuiaCarro</td>
+                        <td>Toneladas Netas dentro del Carro: @carro.ToneladasNetasCarro</td>
+                    </tr>
+                    if(carro.Contenedor != null)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center bold b-top">CONTENEDORES</td>
+                        </tr>
+                        <tr>
+                            <td class="b-bottom" colspan="2">Tipo de Contenedor</td>
+                            <td class="b-bottom" colspan="2">Peso Contenedor Vacío</td>
+                            <td class="b-bottom" colspan="2">Peso Neto Mercancía</td>
+                        </tr>
+                        <tr>
+                            @foreach(var Contenedor in carro.Contenedor)
+                            {
+                                <td colspan="2">@Contenedor.TipoContenedor</td>
+                                <td colspan="2">@Contenedor.PesoContenedorVacio</td>
+                                <td colspan="2">@Contenedor.PesoNetoMercancia</td>
+                            }
+                        </tr>
+                    }
+                }
+            }
+        </tbody>
+    </table>
+    if(Ferroviario.DerechosDePaso != null)
+    {
+        <table class="fs-cartaporte-5 b-bottom">
+            <tbody>
+                <tr>
+                    <td colspan="2" class="bold text-center">DERECHOS DE PASO</td>
+                </tr>
+                <tr>
+                    <td class="b-bottom bold">Tipos de Derechos de Paso</td>
+                    <td class="b-bottom bold">Kilometraje Pagado</td>
+                </tr>
+                @foreach(var derecho in Ferroviario.DerechosDePaso)
+                {
+                    <tr>
+                        <td>@derecho.TipoDerechoDePaso</td>
+                        <td>@derecho.KilometrajePagado</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+
+<!--FIGURAS PIE AP  -->
+<table class="fs-cartaporte-5 b-bottom">
+    <tr>
+        <td class="bold b-concepto-bottom text-center">INFORMACIÓN DE LA FIGURA QUE TRASLADA</td>
+    </tr>
+    <tr>
+        <td><span class="bold">Tipo de Transporte:</span> TipoTransporte</td>
+    </tr>
+</table>
+
+@if(Model.CartaPorte.FiguraTransporte != null)
+{
+    foreach(var figura in Model.CartaPorte.FiguraTransporte)
+    {
+        if(figura.TipoFigura == "01")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!--OPERADORES PIE AQ  -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">OPERADORES DE AUTO TRANSPORTE</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                <tr>
+                    <td colspan="6"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                        @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                        @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                        @figura.Domicilio.CodigoPostal
+                        @figura.Domicilio.Referencia</td>
+                </tr>
+                }
+            </table>
+        }
+        else if(figura.TipoFigura == "02")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!-- PROPIETARIOS PIE AR -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">PROPIETARIO DEL TRANSPORTE</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                    <td colspan="2"></td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                    <tr>
+                        <td colspan="6"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                            @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                            @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                            @figura.Domicilio.CodigoPostal
+                            @figura.Domicilio.Referencia</td>
+                    </tr>
+                }
+                @if(figura.PartesTransporte != null)
+                {
+                    foreach(var parte in figura.PartesTransporte)
+                    {
+                    <tr>
+                        <td colspan="6"><span class="bold">Partes Transporte: </span>@parte.ParteTransporte</td>
+                    </tr>
+                    }
+                }
+            </table>
+        }
+        else if(figura.TipoFigura == "03")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!-- ARRENDATARIO PIE AS -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">ARRENDATARIO DE AUTO TRANSPORTE</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                <tr>
+                    <td colspan="6" class="b-bottom"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                        @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                        @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                        @figura.Domicilio.CodigoPostal
+                        @figura.Domicilio.Referencia</td>
+                </tr>
+                }
+                @if(figura.PartesTransporte != null)
+                {
+                    foreach(var parte in figura.PartesTransporte){
+                    <tr>
+                        <td colspan="6"><span class="bold">Partes Transporte: </span>@parte.ParteTransporte</td>
+                    </tr>
+                    }
+                }
+            </table>
+        }
+        else if(figura.TipoFigura == "04")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!-- NOTIFICAR PIE AT -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">NOTIFICAR A:</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                    <tr>
+                        <td colspan="6"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                            @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                            @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                            @figura.Domicilio.CodigoPostal
+                            @figura.Domicilio.Referencia</td>
+                    </tr>
+                }
+            </table>
+        }
+        else 
+        {
+            <p>figura desconocida</p>
+        }
+    }
+}
+
+@if(Model.CartaPorte.Version == "3.1"){
+<div class="row mt-3">
+    <div class="col-3">
+        <img src="@Model.Comprobante.QRCartaPorte31" width="185" height="185" alt="qrccp30" />
+    </div>
+</div>
+}
+@if(Model.CartaPorte.Version == "3.0"){
+<div class="row mt-3">
+    <div class="col-3">
+        <img src="@Model.Comprobante.QRCartaPorte30" width="185" height="185" alt="qrccp31" />
+    </div>
+</div>
+}
+<table class="Info fs-cfdi-5">
+    <tr>
+        <td colspan="4" class="bold b-bottom-2">COMPLMENTO COMERCIO
+            EXTERIOR @Model.Comprobante.ComercioExterior.Version</td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">Tipo Operacion:</td>
+        <td></td>
+        <td class="bold col-comercio">Total USD: @Model.Comprobante.ComercioExterior.TotalUSD</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">Clave de Pedimento: @Model.Comprobante.ComercioExterior.ClaveDePedimento</td>
+        <td></td>
+        <td class="bold col-comercio">Tipo Cambio USD: @Model.Comprobante.ComercioExterior.TipoCambioUSD</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">Subdivisión: </td>
+        <td></td>
+        <td class="bold col-comercio">Certificado Origen: @Model.Comprobante.ComercioExterior.CertificadoOrigen</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">INCOTERM: @Model.Comprobante.ComercioExterior.Incoterm</td>
+        <td></td>
+        <td></td>
+        <td></td>
+    </tr>
+</table>
+
+@if(Model.Comprobante.ComercioExterior.Emisor != null && Model.Comprobante.ComercioExterior.Emisor.Domicilio != null)
+{
+    <table class="Info fs-cfdi-5">
+        <tr>
+            <td colspan="3" class="bold b-bottom-2">EMISOR</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Calle: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Calle</td>
+            <td class="col-comercio">Colonia: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Colonia</td>
+            <td class="col-comercio">País: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Pais</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Municipio: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Municipio</td>
+            <td class="col-comercio">Estado: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Estado</td>
+            <td class="col-comercio">Localidad: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Localidad</td>
+
+        </tr>
+        <tr>
+            <td colspan="3">CP: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.CodigoPostal</td>
+        </tr>
+    </table>
+}
+@if(Model.Comprobante.ComercioExterior.Receptor != null && Model.Comprobante.ComercioExterior.Receptor.Domicilio != null)
+{
+    <table class="Info fs-cfdi-5">
+        <tr>
+            <td class="b-bottom-2">RECEPTOR</td>
+            <td colspan="2" class="bold b-bottom-2">NumRegIdTrib:
+                @Model.Comprobante.ComercioExterior.Receptor.NumRegIdTrib</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Calle: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Calle</td>
+            <td class="col-comercio">Colonia: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Colonia</td>
+            <td class="col-comercio">País: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Pais</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Municipio: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Municipio</td>
+            <td class="col-comercio">Estado: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Estado</td>
+            <td class="col-comercio">Localidad: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Localidad</td>
+
+        </tr>
+        <tr>
+            <td colspan="3">CP: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.CodigoPostal</td>
+        </tr>
+    </table>
+}
+@if(Model.Comprobante.ComercioExterior.Destinatario != null && Model.Comprobante.ComercioExterior.Destinatario.Domicilio != null)
+{
+    <table class="Info fs-cfdi-5">
+        <tr>
+            <td colspan="3" class="b-bottom-2 bold">DESTINATARIO</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Calle: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Calle</td>
+            <td class="col-comercio">Colonia: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Colonia</td>
+            <td class="col-comercio">País: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Pais</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Municipio: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Municipio</td>
+            <td class="col-comercio">Estado: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Estado</td>
+            <td class="col-comercio">Localidad: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Localidad</td>
+        </tr>
+        <tr>
+            <td colspan="3">CP: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.CodigoPostal</td>
+        </tr>
+    </table>
+}
+
+
+@if(Model.Comprobante.ComercioExterior.Mercancias != null)
+{
+    <table class="mt-4 fs-cfdi-5">
+        <thead>
+            <tr class="fsp-5 bg-secondary border-secondary">
+                <th>No. Identificación</th>
+                <th>Fraccion Aranceleria</th>
+                <th>Cantidad Aduana</th>
+                <th>Unidad Aduana</th>
+                <th>Valor Unitario Aduana</th>
+                <th>Valor Dólares</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th>SubModelo</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var Mercancia in Model.Comprobante.ComercioExterior.Mercancias){
+            <tr>
+                <td>@Mercancia.NoIdentificacion</td>
+                <td>@Mercancia.FraccionArancelaria</td>
+                <td>@Mercancia.CantidadAduana</td>
+                <td>@Mercancia.UnidadAduana</td>
+                <td>@Mercancia.ValorUnitarioAduana</td>
+                <td>@Mercancia.ValorDolares</td>
+                @if(Mercancia.DescripcionesEspecificas != null)
+                {
+                    <td>
+                        @foreach (var Descripcion in Mercancia.DescripcionesEspecificas)
+                        {
+                            <tr>
+                                <td>@Descripcion.Marca</td>
+                                <td>@Descripcion.Modelo</td>
+                                <td>@Descripcion.SubModelo</td>
+                            </tr>
+                        }
+                    </td>
+                }
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+
+        </div>
+        <div class="info mt-4">
+
+            @if(Model.Comprobante.AdendaRfacil != null){
+            <div class="font-timbre">
+                <div>@Model.Comprobante.AdendaRfacil.Campo01</div>
+                <div>@Model.Comprobante.AdendaRfacil.Campo03 </div>
+                <div>@Model.Comprobante.AdendaRfacil.Campo04 </div>
+                <div>@Model.Comprobante.AdendaRfacil.Campo05 </div>
+            </div>
+            }
+            @if(Model.Comprobante.CfdiRelacionados != null){
+            <div class="complemento mb-2">
+                <div class="relacionados">
+                    <table style="width: 80%;" class="b-concepto-bottom mb-2 fs-cfdi-5 info">
+                        <tr>
+                            <td colspan="2" class="bold b-concepto-bottom">CFDI'S Relacionados</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">Tipo de Relación</td>
+                            <td class="bold">UUID Relacionado</td>
+                        </tr>
+                        @foreach(var docto in Model.Comprobante.CfdiRelacionados){
+                        foreach(var relacion in docto.CfdiRelacionado){
+                        <tr>
+                            <td>@docto.TipoRelacion - @PDF.GetValor(docto.TipoRelacion, "Relacion")</td>
+                            <td>@relacion.UUID</td>
+                        </tr>
+                        }
+                        }
+                    </table>
+                </div>
+            </div>
+            }
+
+            <div class="b-bottom"></div>
+            @if(Model.Comprobante.TimbreFiscalDigital != null){
+            <table class="info">
+                <tbody>
+                    <tr>
+                        <td class="font-timbre" style="width: 40%;">
+                            <div>No. de serie del CSD del Emisor: @Model.Comprobante.NoCertificado</div>
+                            <div>Fecha y hora de Certificación: @Model.Comprobante.TimbreFiscalDigital.FechaTimbrado </div>
+                            <div>Fecha y hora de Emisión @Model.Comprobante.Fecha</div>
+                            <div>No. de serie del CSD del SAT: @Model.Comprobante.TimbreFiscalDigital.NoCertificadoSAT </div>
+                        </td>
+                        <td class="font-timbre bold">
+                            <div>Folio Fiscal: @Model.Comprobante.TimbreFiscalDigital.UUID</div>
+                            <div>@Model.Comprobante.Serie@Model.Comprobante.Folio - Tipo de comprobante: @Model.Comprobante.TipoDeComprobante</div>
+                            <div>Importe con Letra: @Model.Comprobante.MonedaConLetra</div>
+                            <div>Método de Pago: @Model.Comprobante.MetodoPago - @PDF.GetValor(Model.Comprobante.MetodoPago,"MetodoDePago")</div>
+                            <div>Forma de Pago: @Model.Comprobante.FormaPago - @PDF.GetValor(Model.Comprobante.FormaPago, "FormaPago")</div>
+                        </td>
+                        <td class="font-timbre"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="info">
+                <tbody>
+                    <tr>
+                        <td class="font-timbre" style="width: 75%;">
+                            <div>Sello Digital del Emisor:</div>
+                            <div class="text-break">@Model.Comprobante.Sello</div>
+                            <div>Cadena Original del Complemento de Certificación Digital del SAT:</div>
+                            <div class="text-break">
+                                @("||"+Model.Comprobante.TimbreFiscalDigital.Version+"|"+Model.Comprobante.TimbreFiscalDigital.UUID+"|"+PDF.FormatDateString(Model.Comprobante.TimbreFiscalDigital.FechaTimbrado)+"|"+Model.Comprobante.TimbreFiscalDigital.SelloCFD+"|"+Model.Comprobante.TimbreFiscalDigital.SelloSAT+"|"+Model.Comprobante.TimbreFiscalDigital.NoCertificadoSAT+"||")
+                            </div>
+                            <div>Expedido en: @Model.Comprobante.LugarExpedicion</div>
+                            <div>Este documento es una representación impresa de un CFDI</div>
+                        </td>
+                        <td class="font-timbre">
+                            <img src="@Model.Comprobante.QR" width="185" height="185" />
+                            <p>Tesorería Municipal , 7262621770, 7262620361</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            }
+        </div>
+
+
+        <div class="complemento info mt-3" hidden="@PDF.OcultarComplementoSeccion((Comprobante)Model.Comprobante, false)">
+            
+
+<!-- CARTAPORTE PRINCIPAL PIE AF -->
+@if(Model.CartaPorte.Version != "2.0"){
+    <div class="fs-cartaporte-5 text-center">
+        <span class="bold">IDCCP: </span>@Model.CartaPorte.IdCCP
+    </div>
+}
+<table class="fs-cartaporte-5 b-bottom">
+    <tbody>
+        <tr>
+            <td colspan="6" class="bold  text-center b-concepto-bottom">CARTA PORTE @Model.CartaPorte.Version </td>
+        </tr>
+        <tr>
+            <td><span class="bold">Transporte Nacional:</span> @Model.CartaPorte.TranspInternac</td>
+            <td><span class="bold">Tipo de Movimiento:</span> @Model.CartaPorte.EntradaSalidaMerc</td>
+            <td><span class="bold">Via de Ingreso:</span> @Model.CartaPorte.ViaEntradaSalida</td>
+            <td><span class="bold">Distancia Recorrida: </span>@Model.CartaPorte.TotalDistRec</td>
+            @if(Model.CartaPorte.Version == "3.0")
+            {
+                <td><span class="bold">Régimen aduanero:</span> @Model.CartaPorte.RegimenAduanero</td>
+                <td><span class="bold">Registro ITSMO:</span> @Model.CartaPorte.RegistroISTMO</td>
+            }
+        </tr>
+    </tbody>
+</table>
+
+@if(Model.CartaPorte.Mercancias != null){
+<!-- CARTAPORTE MERCANCIAS PIE AG -->
+<table class="fs-cartaporte-5 b-bottom">
+    <tbody>
+        <tr>
+            <td colspan="6" class="bold  text-center b-concepto-bottom">MERCANCIAS</td>
+        </tr>
+        <tr>
+            <td><span class="bold ">Peso Bruto Total: </span>@Model.CartaPorte.Mercancias.PesoBrutoTotal</td>
+            <td><span class="bold ">Unidad de Peso: </span>@Model.CartaPorte.Mercancias.UnidadPeso</td>
+            <td><span class="bold ">Peso Neto Total: </span>@Model.CartaPorte.Mercancias.PesoNetoTotal</td>
+            <td><span class="bold ">No. Mercancias: </span>@Model.CartaPorte.Mercancias.NumTotalMercancias</td>
+            <td><span class="bold ">Cargo Por Tasación: </span>@Model.CartaPorte.Mercancias.CargoPorTasacion</td>
+            @if(Model.CartaPorte.Version == "3.0")
+            {
+                <td><span class="bold">Logistica Inversa</span>@Model.CartaPorte.Mercancias.LogisticaInversaRecoleccionDevolucion</td>
+            }
+        </tr>
+    </tbody>
+</table>
+}
+
+@if(Model.CartaPorte.Version == "3.1" && Model.CartaPorte.RegimenesAduaneros != null){
+<!-- CARTAPORTE MERCANCIAS PIE AG -->
+<table class="fs-cartaporte-5 b-bottom text-center">
+    <tbody>
+        <tr>
+            <td class="bold text-center b-concepto-bottom">REGIMENES ADUENEROS</td>
+        </tr>
+        @foreach(var regimen in Model.CartaPorte.RegimenesAduaneros)
+        {
+            <tr>
+                <td class="full">@regimen.RegimenAduanero - @PDF.GetValor(@regimen.RegimenAduanero, "Regimen")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+}
+
+@{int OrigenCounter = 0 ;}
+@if(Model.CartaPorte.Ubicaciones != null && Model.CartaPorte.Ubicaciones.Count > 0)
+{
+    <!-- CARTAPORTE UBICACIONES PIE AH -->
+    <div class="OrigenCartaPorte">
+        <table class="fs-cartaporte-5">
+            <tbody>
+                <tr>
+                    <td colspan="7" class="bold fs-cartaporte-5 text-center b-concepto-bottom">UBICACIONES</td>
+                </tr>
+                <tr>
+                    <td colspan="7" class="bold fs-cartaporte-5 text-center">ORIGEN</td>
+                </tr>
+                <tr>
+                    <td class="bold b-bottom">ID Origen</td>
+                    <td class="bold b-bottom">RFC / Reg. Id Fiscal</td>
+                    <td class="bold b-bottom">Nombre del Destinatario</td>
+                    <td class="bold b-bottom">Recidencia Fiscal</td>
+                    <td class="bold b-bottom">Datos de la Estación</td>
+                    <td class="bold b-bottom">Tipo Navegación</td>
+                    <td class="bold b-bottom">Fecha Aprox. LLegada</td>
+                </tr>
+                @foreach(var ubicacion in Model.CartaPorte.Ubicaciones)
+                {
+                    if(OrigenCounter == 0)
+                    {
+                        <tr>
+                            <td>@ubicacion.IDUbicacion</td>
+                            <td>@ubicacion.RFCRemitenteDestinatario</td>
+                            <td>@ubicacion.NombreRemitenteDestinatario</td>
+                            <td>@ubicacion.ResidenciaFiscal</td>
+                            <td>@ubicacion.TipoEstacion</td>
+                            <td>@ubicacion.TipoUbicacion</td>
+                            <td>@ubicacion.FechaHoraSalidaLlegada</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="bold b-bottom">Domicilio Completo</td>
+                        </tr>
+                        @if(ubicacion.Domicilio != null){
+                        <tr>
+                            <td colspan="4" class="fs-cartaporte-5 text-break">
+                                @ubicacion.Domicilio.Calle @ubicacion.Domicilio.NumeroExterior @ubicacion.Domicilio.Localidad
+                                @ubicacion.Domicilio.Colonia @ubicacion.Domicilio.Estado @ubicacion.Domicilio.CodigoPostal
+                                @ubicacion.IDUbicacion @ubicacion.NombreRemitenteDestinatario
+                            </td>
+                        </tr>
+                        }
+                        <tr>
+                            <td colspan="7" class="b-bottom">Sucursal / Domicilio Origen: @ubicacion.IDUbicacion
+                                @ubicacion.NombreRemitenteDestinatario</td>
+                        </tr>
+                    }
+                    OrigenCounter ++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+
+<!-- CARTAPORTE DESTINOS PIE AI -->
+@{int counter = 1;}
+@if(Model.CartaPorte.Ubicaciones != null)
+{
+    foreach (var destino in Model.CartaPorte.Ubicaciones)
+    {
+        if(counter > 1)
+        {
+            <div class="DESTINOS-CARTAPORTE">
+                <table class="fs-cartaporte-5">
+                    <tbody>
+                        <tr>
+                            <td colspan="7" class="text-center bold ">DESTINO</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><span class="bold ">Tipo de Estación: @destino.TipoEstacion</span></td>
+                            <td colspan="4"><span class="bold ">Distancia Recorrida: @destino.DistanciaRecorrida</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bold b-bottom">ID Destino</td>
+                            <td class="bold b-bottom">RFC / Reg. Id Fiscal</td>
+                            <td class="bold b-bottom">Nombre del Destinatario</td>
+                            <td class="bold b-bottom">Recidencia Fiscal</td>
+                            <td class="bold b-bottom">Datos de la Estación</td>
+                            <td class="bold b-bottom">Tipo Navegación</td>
+                            <td class="bold b-bottom">Fecha Aprox. LLegada</td>
+                        </tr>
+                        <tr>
+                            <td>@destino.IDUbicacion</td>
+                            <td>@destino.RFCRemitenteDestinatario</td>
+                            <td>@destino.NombreRemitenteDestinatario</td>
+                            <td>@destino.ResidenciaFiscal</td>
+                            <td>@destino.TipoEstacion</td>
+                            <td>@destino.TipoUbicacion</td>
+                            <td>@destino.FechaHoraSalidaLlegada</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="b-bottom bold ">Domicilio Completo</td>
+                        </tr>
+                        @if(destino.Domicilio != null){
+                        <tr>
+                            <td colspan="7">@destino.Domicilio.Calle
+                                @destino.Domicilio.NumeroExterior @destino.Domicilio.Localidad
+                                @destino.Domicilio.Colonia</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7">@destino.Domicilio.Estado @destino.Domicilio.CodigoPostal</td>
+                        </tr>
+                        }
+                        <tr>
+                            <td colspan="7" class="b-bottom  ">Sucursal / Domicilio Destino: @destino.IDUbicacion
+                                @destino.NombreRemitenteDestinatario</td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="b-bottom bold  text-center">Mercancias</td>
+                        </tr>
+                        @if(Model.CartaPorte.Mercancias != null && Model.CartaPorte.Mercancias.Mercancia != null)
+                        {
+                            foreach (var Mercancia in Model.CartaPorte.Mercancias.Mercancia)
+                            {
+                                if(Mercancia.CantidadTransporta != null)
+                                {
+                                    foreach(var Cantidad in Mercancia.CantidadTransporta)
+                                    {
+                                        if(destino.IDUbicacion == Cantidad.IDDestino)
+                                        {
+                                            <tr>
+                                                <td><span class="bold">Clave Unidad: </span>@Mercancia.ClaveUnidad</td>
+                                                <td><span class="bold">Clave Bien/Producto: </span>@Mercancia.BienesTransp</td>
+                                                <td colspan="3"><span class="bold">Descripción: </span>@Mercancia.Descripcion</td>
+                                                <td><span class="bold">Cantidad: </span>@Cantidad.Cantidad</td>
+                                                <td><span class="bold">Peso: </span>@Mercancia.PesoEnKg</td>
+                                            </tr>
+                                            if(Mercancia.CveMaterialPeligroso != null)
+                                            {
+                                                <tr>
+                                                    <td colspan="7">
+                                                        <span class="bold">Material Peligroso: </span>@Mercancia.MaterialPeligroso&nbsp;&nbsp;&nbsp;
+                                                        <span class="bold">Clave Mat. Peligroso:
+                                                        </span>@Mercancia.CveMaterialPeligroso&nbsp;&nbsp;&nbsp;
+                                                        <span class="bold">Embalaje: </span>@Mercancia.Embalaje
+                                                    </td>
+                                                </tr>
+                                            }
+                                            if(Mercancia.FraccionArancelaria != null && Mercancia.UUIDComercioExt != null)
+                                            {
+                                                <tr>
+                                                    <td colspan="7">
+                                                        <span class="bold">Fraccion Arancelaria: </span>@Mercancia.FraccionArancelaria&nbsp;&nbsp;&nbsp;
+                                                        <span class="bold">UUID Comercio Exterior: </span>@Mercancia.UUIDComercioExt
+                                                    </td>
+                                                </tr>
+                                            }
+                                            if(Mercancia.ClaveSTCC != null)
+                                            {
+                                                <tr>
+                                                    <td colspan="7"><span class="bold">Clave STCC: </span>@Mercancia.ClaveSTCC</td>
+                                                </tr>
+                                            }
+                                            if(Model.CartaPorte.Version == "3.0" && Mercancia.SectorCOFEPRIS != null)
+                                            {
+                                                <tr>
+                                                    <td class="b-bottom"><span class="bold">Sector COFEPRIS: </span> @Mercancia.SectorCOFEPRIS</td>
+                                                    <td class="b-bottom"><span class="bold">Nombre Ingrediente Activo: </span>
+                                                        @Mercancia.NombreIngredienteActivo</td>
+                                                    <td class="b-bottom"><span class="bold">Nombre Quimico: </span> @Mercancia.NomQuimico</td>
+                                                    <td class="b-bottom"><span class="bold">Lote Medicamento: </span> @Mercancia.LoteMedicamento</td>
+                                                    <td class="b-bottom"><span class="bold">Forma Farmaceutica: </span> @Mercancia.FormaFarmaceutica
+                                                    </td>
+                                                    <td class="b-bottom"><span class="bold">Condiciones de transporte especiales: </span>
+                                                        @Mercancia.CondicionesEspTransp</td>
+                                                    <td class="b-bottom"><span class="bold">Permiso Importacion: </span> @Mercancia.PermisoImportacion
+                                                    </td>
+                                                </tr>
+                                            }
+                                            else
+                                            {
+                                                <tr>
+                                                    <td colspan="7" class="b-bottom"></td>
+                                                </tr>
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        counter++;
+    }
+}
+<!-- CARTAPORTE PEDIMIENTOS PIE AJ -->
+@if(Model.CartaPorte.Version == "2.0" && Model.CartaPorte.Mercancias.Mercancia != null){
+<table class="fs-cartaporte-5">
+    <tr>
+        <td colspan="2" class="text-center bold fsp-5 b-concepto-bottom">PEDIEMENTO</td>
+    </tr>
+    @foreach(var MP in Model.CartaPorte.Mercancias.Mercancia)
+    {
+        if(MP.Pedimentos != null)
+        {
+            foreach(var pedimento in MP.Pedimentos)
+            {
+            <tr>
+                <td class="diez" class="bold">Pedimento:</td>
+                <td>@pedimento.Pedimento</td>
+            </tr>
+            }
+        }
+    }
+</table>
+}
+<!-- CARTAPORTE GUIAS DE IDENTIFICACION PIE AK -->
+@if(Model.CartaPorte.Mercancias.Mercancia != null)
+{
+    foreach(var MGI in Model.CartaPorte.Mercancias.Mercancia)
+    {
+        if(MGI.GuiasIdentificacion != null)
+        {
+            foreach(var guia in MGI.GuiasIdentificacion)
+            {
+            <table class="fs-cartaporte-5">
+                <tr>
+                    <td colspan="2" class="text-center bold fsp-5 b-concepto-bottom">GUIAS IDENTIFICACION</td>
+                </tr>
+                <tr>
+                    <td><span class="bold">No. Guía Identificación:</span> @guia.NumeroGuiaIdentificacion</td>
+                </tr>
+                <tr>
+                    <td><span class="bold">Descripción Guía Identificación:</span> @guia.DescripGuiaIdentificacion</td>
+                </tr>
+                <tr>
+                    <td class="b-bottom"><span class="bold">Peso Guía Identificación:</span> @guia.PesoGuiaIdentificacion</td>
+                </tr>
+            </table>
+            }
+        }
+    }
+}
+
+<!-- CARTAPORTE AUTOTRANSPORTE DE CARGA PIE Al-->
+@if(Model.CartaPorte.Mercancias != null && Model.CartaPorte.Mercancias.Autotransporte != null)
+{
+<table class="fs-cartaporte-5 b-bottom">
+    <tbody>
+        <tr>
+            <td colspan="4" class="bold text-center fsp-5 b-concepto-bottom">AUTOTRANSPORTE DE CARGA</td>
+        </tr>
+        <tr>
+            <td class="bold">Tipo Persmiso:</td>
+            <td>@Model.CartaPorte.Mercancias.Autotransporte.PermSCT</td>
+            <td class="bold">No. Permiso SCT</td>
+            <td>@Model.CartaPorte.Mercancias.Autotransporte.NumPermisoSCT</td>
+        </tr>
+        @if(Model.CartaPorte.Version == "3.0" || Model.CartaPorte.Version == "3.1")
+        {
+        <tr>
+            <td class="bold b-bottom">Peso Bruto Vehícular</td>
+            @{
+                var IdentificacionVehicular = "";
+                if(Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular != null)
+                {
+                    IdentificacionVehicular = Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.PesoBrutoVehicular;
+                }else{
+                    IdentificacionVehicular = "NA";
+                }
+            }
+            <td class="b-bottom">@IdentificacionVehicular</td>
+            <td class="bold b-bottom"></td>
+            <td class="b-bottom"></td>
+        </tr>
+        }
+
+        @if(Model.CartaPorte.Mercancias.Autotransporte.Seguros != null)
+        {
+        <tr>
+            <td class="bold b-bottom">Nombre Aseguradores</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.Seguros.AseguraRespCivil</td>
+            <td class="bold b-bottom">No. Poliza de Seguro</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.Seguros.PolizaRespCivil</td>
+        </tr>
+        }
+        @if(Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular != null)
+        {
+        <tr>
+            <td class="bold" colspan="2">Tipo Auto Transporte:</td>
+            <td colspan="2">@Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.ConfigVehicular</td>
+        </tr>
+        <tr>
+            <td class="bold b-bottom">No. Placa</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.PlacaVM</td>
+            <td class="bold b-bottom">Año del Modelo del Auto Transporte:</td>
+            <td class="b-bottom">@Model.CartaPorte.Mercancias.Autotransporte.IdentificacionVehicular.AnioModeloVM</td>
+        </tr>
+        }
+        <!-- puede que truene -->
+        @{var Seguros = Model.CartaPorte.Mercancias.Autotransporte.Seguros != null ? Model.CartaPorte.Mercancias.Autotransporte.Seguros : null;}
+        @if(Seguros != null)
+        {
+        <tr>
+            <td colspan="4">
+                <table class="fs-cartaporte-5 Info info">
+                    <tr class="bold text-center">
+                        <td>SEGUROS</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <p><span class="bold">Aseguradora de responsabilidad civil:
+                                </span>@Seguros.AseguraRespCivil</p>
+                            <p><span class="bold">No. Póliza de seguro por responsabilidad civil:
+                                </span>@Seguros.PolizaRespCivil</p>
+                            <p><span class="bold">Aseguradora de daños al medio ambiente:
+                                </span>@Seguros.AseguraMedAmbiente</p>
+                            <p><span class="bold">No. Póliza de seguro por daños al medio ambiente:
+                                </span>@Seguros.PolizaMedAmbiente</p>
+                            <p><span class="bold">Aseguradora de la carga transportada: </span>@Seguros.AseguraCarga
+                            </p>
+                            <p><span class="bold">No. póliza de seguro de la carga transportada:
+                                </span>@Seguros.PolizaCarga</p>
+                            <p><span class="bold">Valor de la prima del seguro: </span>@Seguros.PrimaSeguro</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        }
+        @if(Model.CartaPorte.Mercancias.Autotransporte.Remolques != null)
+        {
+        <tr>
+            <td colspan="4">
+                <table class="fs-cartaporte-5 Info info cincuenta">
+                    <tr>
+                        <td colspan="2" class="bold text-center">REMOLQUES</td>
+                    </tr>
+                    <tr>
+                        <th class="b-bottom">Placa</th>
+                        <th class="b-bottom">Tipo Remolque</th>
+                    </tr>
+                    <tr>
+                        @foreach(var Remolque in Model.CartaPorte.Mercancias.Autotransporte.Remolques){
+                        <td><span class="bold">Placa: </span>@Remolque.Placa</td>
+                        <td><span class="bold">Tipo de Remolque: </span>@Remolque.SubTipoRem</td>
+                        }
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>
+}
+
+<!-- TRANSPORTE MARITIMO PIE AM -->
+@if(Model.CartaPorte.Mercancias.TransporteMaritimo != null)
+{
+    var maritimo = Model.CartaPorte.Mercancias.TransporteMaritimo;
+    if(maritimo != null)
+    {
+    <table class="fs-cartaporte-5">
+        <tbody>
+            <tr>
+                <td colspan="6" class="bold b-concepto-bottom fsp-5 text-center">TRANSPORTE MARÍTIMO</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo Permiso SCT:</td>
+                <td>@maritimo.PermSCT</td>
+                <td class="bold">Nombre Aseguradora: </td>
+                <td>@maritimo.NombreAseg</td>
+                <td class="bold">No. OMI:</td>
+                <td>@maritimo.NumeroOMI</td>
+            </tr>
+            <tr>
+                <td class="bold">No. Póliza de Seguro:</td>
+                <td>@maritimo.NumPolizaSeguro</td>
+                <td class="bold">Matrícula: </td>
+                <td>@maritimo.Matricula</td>
+                <td class="bold">Nacionalidad:</td>
+                <td>@maritimo.NacionalidadEmbarc</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo Embarcación:</td>
+                <td>@maritimo.TipoEmbarcacion</td>
+                <td class="bold">Año Embarcación: </td>
+                <td>@maritimo.AnioEmbarcacion</td>
+                <td class="bold">Unidades de Arqueo Bruto: </td>
+                <td>@maritimo.UnidadesDeArqBruto</td>
+            </tr>
+            <tr>
+                <td class="bold">Nombre Embarcación:</td>
+                <td>@maritimo.NombreEmbarc</td>
+                <td class="bold">No. ITC: </td>
+                <td>@maritimo.NumCertITC</td>
+                <td class="bold">Calado: </td>
+                <td>@maritimo.Calado</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo de Carga:</td>
+                <td>@maritimo.TipoCarga</td>
+                <td class="bold">Manga: </td>
+                <td>@maritimo.Manga</td>
+                <td class="bold">No.Conocimiento de E.: </td>
+                <td>@maritimo.NumConocEmbarc</td>
+            </tr>
+            <tr>
+                <td class="bold">Eslora: </td>
+                <td>@maritimo.Eslora pies</td>
+                <td class="bold">Agente Naviero: </td>
+                <td>@maritimo.NombreAgenteNaviero</td>
+            </tr>
+            <tr>
+                <td class="bold">Linea Naviera:</td>
+                <td>@maritimo.LineaNaviera</td>
+                <td class="bold">No. Viaje: </td>
+                <td>@maritimo.NumViaje</td>
+            </tr>
+            <tr>
+                <td class="bold">No. Autorización Agente Naviero:</td>
+                <td>@maritimo.NumAutorizacionNaviero</td>
+                <td class="bold">No. Permiso SCT:</td>
+                <td>@maritimo.NumPermisoSCT</td>
+            </tr>
+
+            @if(Model.CartaPorte.Mercancias.TransporteMaritimo.Contenedor != null)
+            {
+                <tr>
+                    <td colspan="6" class="text-center bold b-bottom b-top">CONTENEDORES</td>
+                </tr>
+                <tr>
+                    <td class="bold" colspan="2">Matrícula</td>
+                    <td class="bold" colspan="2">No. Precinto</td>
+                    <td class="bold" colspan="2">Tipo Contenedor</td>
+                </tr>
+                foreach(var Contenedor in Model.CartaPorte.Mercancias.TransporteMaritimo.Contenedor)
+                {
+                    <tr>
+                        <td colspan="2">@Contenedor.MatriculaContenedor</td>
+                        <td colspan="2">@Contenedor.TipoContenedor</td>
+                        <td colspan="2">@Contenedor.NumPrecinto</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    }
+}
+
+<!-- TRANSPORTE FERREO PIE AN -->
+@if(Model.CartaPorte.Mercancias.TransporteFerroviario != null)
+{
+    var Ferroviario = Model.CartaPorte.Mercancias.TransporteFerroviario;
+    <table class="fs-cartaporte-5">
+        <tbody class="b-bottom">
+            <tr>
+                <td class="b-concepto-bottom bold text-center" colspan="6">TRANSPORTE FERROVIARIO</td>
+            </tr>
+            <tr>
+                <td class="bold">Tipo de Servicio:</td>
+                <td>@Ferroviario.TipoDeServicio</td>
+                <td class="bold">Nombre Aseguradora:</td>
+                <td>@Ferroviario.NombreAseg</td>
+                <td class="bold">Tipo de Tráfico:</td>
+                <td>@Ferroviario.TipoDeTrafico</td>
+            </tr>
+            <tr>
+                <td class="bold">No. Póliza Seguro:</td>
+                <td>@Ferroviario.NumPolizaSeguro</td>
+                <td class="bold">RFC del Concesionario:</td>
+                <td></td>
+                <td class="bold"></td>
+                <td></td>
+            </tr>
+            @if(Ferroviario.Carro != null)
+            {
+                <tr>
+                    <td colspan="6" class="text-center bold">INFORMACIÓN DEL CARRO</td>
+                </tr>
+                foreach(var carro in Ferroviario.Carro)
+                {
+                    <tr>
+                        <td colspan="2">Tipo Carro: @carro.TipoCarro</td>
+                        <td colspan="2">No. Matrícula Carro: @carro.MatriculaCarro</td>
+                        <td>No. Guía del Carro: @carro.GuiaCarro</td>
+                        <td>Toneladas Netas dentro del Carro: @carro.ToneladasNetasCarro</td>
+                    </tr>
+                    if(carro.Contenedor != null)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center bold b-top">CONTENEDORES</td>
+                        </tr>
+                        <tr>
+                            <td class="b-bottom" colspan="2">Tipo de Contenedor</td>
+                            <td class="b-bottom" colspan="2">Peso Contenedor Vacío</td>
+                            <td class="b-bottom" colspan="2">Peso Neto Mercancía</td>
+                        </tr>
+                        <tr>
+                            @foreach(var Contenedor in carro.Contenedor)
+                            {
+                                <td colspan="2">@Contenedor.TipoContenedor</td>
+                                <td colspan="2">@Contenedor.PesoContenedorVacio</td>
+                                <td colspan="2">@Contenedor.PesoNetoMercancia</td>
+                            }
+                        </tr>
+                    }
+                }
+            }
+        </tbody>
+    </table>
+    if(Ferroviario.DerechosDePaso != null)
+    {
+        <table class="fs-cartaporte-5 b-bottom">
+            <tbody>
+                <tr>
+                    <td colspan="2" class="bold text-center">DERECHOS DE PASO</td>
+                </tr>
+                <tr>
+                    <td class="b-bottom bold">Tipos de Derechos de Paso</td>
+                    <td class="b-bottom bold">Kilometraje Pagado</td>
+                </tr>
+                @foreach(var derecho in Ferroviario.DerechosDePaso)
+                {
+                    <tr>
+                        <td>@derecho.TipoDerechoDePaso</td>
+                        <td>@derecho.KilometrajePagado</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+
+<!--FIGURAS PIE AP  -->
+<table class="fs-cartaporte-5 b-bottom">
+    <tr>
+        <td class="bold b-concepto-bottom text-center">INFORMACIÓN DE LA FIGURA QUE TRASLADA</td>
+    </tr>
+    <tr>
+        <td><span class="bold">Tipo de Transporte:</span> TipoTransporte</td>
+    </tr>
+</table>
+
+@if(Model.CartaPorte.FiguraTransporte != null)
+{
+    foreach(var figura in Model.CartaPorte.FiguraTransporte)
+    {
+        if(figura.TipoFigura == "01")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!--OPERADORES PIE AQ  -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">OPERADORES DE AUTO TRANSPORTE</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                <tr>
+                    <td colspan="6"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                        @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                        @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                        @figura.Domicilio.CodigoPostal
+                        @figura.Domicilio.Referencia</td>
+                </tr>
+                }
+            </table>
+        }
+        else if(figura.TipoFigura == "02")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!-- PROPIETARIOS PIE AR -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">PROPIETARIO DEL TRANSPORTE</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                    <td colspan="2"></td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                    <tr>
+                        <td colspan="6"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                            @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                            @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                            @figura.Domicilio.CodigoPostal
+                            @figura.Domicilio.Referencia</td>
+                    </tr>
+                }
+                @if(figura.PartesTransporte != null)
+                {
+                    foreach(var parte in figura.PartesTransporte)
+                    {
+                    <tr>
+                        <td colspan="6"><span class="bold">Partes Transporte: </span>@parte.ParteTransporte</td>
+                    </tr>
+                    }
+                }
+            </table>
+        }
+        else if(figura.TipoFigura == "03")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!-- ARRENDATARIO PIE AS -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">ARRENDATARIO DE AUTO TRANSPORTE</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                <tr>
+                    <td colspan="6" class="b-bottom"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                        @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                        @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                        @figura.Domicilio.CodigoPostal
+                        @figura.Domicilio.Referencia</td>
+                </tr>
+                }
+                @if(figura.PartesTransporte != null)
+                {
+                    foreach(var parte in figura.PartesTransporte){
+                    <tr>
+                        <td colspan="6"><span class="bold">Partes Transporte: </span>@parte.ParteTransporte</td>
+                    </tr>
+                    }
+                }
+            </table>
+        }
+        else if(figura.TipoFigura == "04")
+        {
+            <table class=" fs-cartaporte-5 b-bottom">
+                <!-- NOTIFICAR PIE AT -->
+                <tr>
+                    <td colspan="6" class="bold text-center b-concepto-bottom">NOTIFICAR A:</td>
+                </tr>
+                <tr>
+                    <td class="bold">Nombre del operador:</td>
+                    <td>@figura.NombreFigura</td>
+                    <td class="bold">RFC:</td>
+                    <td>@figura.RFCFigura</td>
+                    <td class="bold">No. de Licencia:</td>
+                    <td>@figura.NumLicencia</td>
+                </tr>
+                <tr>
+                    <td class="bold">No. Registro Id Trbutaria: </td>
+                    <td>@figura.NumRegIdTribFigura</td>
+                    <td class="bold">Residencia Fiscal: </td>
+                    <td>@figura.ResidenciaFiscalFigura</td>
+                </tr>
+                @if(figura.Domicilio != null)
+                {
+                    <tr>
+                        <td colspan="6"><span class="bold">Domicilio: </span>@figura.Domicilio.Calle
+                            @figura.Domicilio.NumeroInterior @figura.Domicilio.Colonia
+                            @figura.Domicilio.Localidad @figura.Domicilio.Municipio @figura.Domicilio.Estado @figura.Domicilio.Pais
+                            @figura.Domicilio.CodigoPostal
+                            @figura.Domicilio.Referencia</td>
+                    </tr>
+                }
+            </table>
+        }
+        else 
+        {
+            <p>figura desconocida</p>
+        }
+    }
+}
+
+@if(Model.CartaPorte.Version == "3.1"){
+<div class="row mt-3">
+    <div class="col-3">
+        <img src="@Model.Comprobante.QRCartaPorte31" width="185" height="185" alt="qrccp30" />
+    </div>
+</div>
+}
+@if(Model.CartaPorte.Version == "3.0"){
+<div class="row mt-3">
+    <div class="col-3">
+        <img src="@Model.Comprobante.QRCartaPorte30" width="185" height="185" alt="qrccp31" />
+    </div>
+</div>
+}
+<table class="Info fs-cfdi-5">
+    <tr>
+        <td colspan="4" class="bold b-bottom-2">COMPLMENTO COMERCIO
+            EXTERIOR @Model.Comprobante.ComercioExterior.Version</td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">Tipo Operacion:</td>
+        <td></td>
+        <td class="bold col-comercio">Total USD: @Model.Comprobante.ComercioExterior.TotalUSD</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">Clave de Pedimento: @Model.Comprobante.ComercioExterior.ClaveDePedimento</td>
+        <td></td>
+        <td class="bold col-comercio">Tipo Cambio USD: @Model.Comprobante.ComercioExterior.TipoCambioUSD</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">Subdivisión: </td>
+        <td></td>
+        <td class="bold col-comercio">Certificado Origen: @Model.Comprobante.ComercioExterior.CertificadoOrigen</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td class="bold col-comercio">INCOTERM: @Model.Comprobante.ComercioExterior.Incoterm</td>
+        <td></td>
+        <td></td>
+        <td></td>
+    </tr>
+</table>
+
+@if(Model.Comprobante.ComercioExterior.Emisor != null && Model.Comprobante.ComercioExterior.Emisor.Domicilio != null)
+{
+    <table class="Info fs-cfdi-5">
+        <tr>
+            <td colspan="3" class="bold b-bottom-2">EMISOR</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Calle: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Calle</td>
+            <td class="col-comercio">Colonia: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Colonia</td>
+            <td class="col-comercio">País: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Pais</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Municipio: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Municipio</td>
+            <td class="col-comercio">Estado: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Estado</td>
+            <td class="col-comercio">Localidad: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.Localidad</td>
+
+        </tr>
+        <tr>
+            <td colspan="3">CP: @Model.Comprobante.ComercioExterior.Emisor.Domicilio.CodigoPostal</td>
+        </tr>
+    </table>
+}
+@if(Model.Comprobante.ComercioExterior.Receptor != null && Model.Comprobante.ComercioExterior.Receptor.Domicilio != null)
+{
+    <table class="Info fs-cfdi-5">
+        <tr>
+            <td class="b-bottom-2">RECEPTOR</td>
+            <td colspan="2" class="bold b-bottom-2">NumRegIdTrib:
+                @Model.Comprobante.ComercioExterior.Receptor.NumRegIdTrib</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Calle: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Calle</td>
+            <td class="col-comercio">Colonia: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Colonia</td>
+            <td class="col-comercio">País: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Pais</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Municipio: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Municipio</td>
+            <td class="col-comercio">Estado: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Estado</td>
+            <td class="col-comercio">Localidad: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.Localidad</td>
+
+        </tr>
+        <tr>
+            <td colspan="3">CP: @Model.Comprobante.ComercioExterior.Receptor.Domicilio.CodigoPostal</td>
+        </tr>
+    </table>
+}
+@if(Model.Comprobante.ComercioExterior.Destinatario != null && Model.Comprobante.ComercioExterior.Destinatario.Domicilio != null)
+{
+    <table class="Info fs-cfdi-5">
+        <tr>
+            <td colspan="3" class="b-bottom-2 bold">DESTINATARIO</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Calle: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Calle</td>
+            <td class="col-comercio">Colonia: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Colonia</td>
+            <td class="col-comercio">País: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Pais</td>
+        </tr>
+        <tr>
+            <td class="col-comercio">Municipio: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Municipio</td>
+            <td class="col-comercio">Estado: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Estado</td>
+            <td class="col-comercio">Localidad: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.Localidad</td>
+        </tr>
+        <tr>
+            <td colspan="3">CP: @Model.Comprobante.ComercioExterior.Destinatario.Domicilio.CodigoPostal</td>
+        </tr>
+    </table>
+}
+
+
+@if(Model.Comprobante.ComercioExterior.Mercancias != null)
+{
+    <table class="mt-4 fs-cfdi-5">
+        <thead>
+            <tr class="fsp-5 bg-secondary border-secondary">
+                <th>No. Identificación</th>
+                <th>Fraccion Aranceleria</th>
+                <th>Cantidad Aduana</th>
+                <th>Unidad Aduana</th>
+                <th>Valor Unitario Aduana</th>
+                <th>Valor Dólares</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th>SubModelo</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var Mercancia in Model.Comprobante.ComercioExterior.Mercancias){
+            <tr>
+                <td>@Mercancia.NoIdentificacion</td>
+                <td>@Mercancia.FraccionArancelaria</td>
+                <td>@Mercancia.CantidadAduana</td>
+                <td>@Mercancia.UnidadAduana</td>
+                <td>@Mercancia.ValorUnitarioAduana</td>
+                <td>@Mercancia.ValorDolares</td>
+                @if(Mercancia.DescripcionesEspecificas != null)
+                {
+                    <td>
+                        @foreach (var Descripcion in Mercancia.DescripcionesEspecificas)
+                        {
+                            <tr>
+                                <td>@Descripcion.Marca</td>
+                                <td>@Descripcion.Modelo</td>
+                                <td>@Descripcion.SubModelo</td>
+                            </tr>
+                        }
+                    </td>
+                }
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+
+        </div>
+
+
+    </div>
+</body>
+
+</html><!-- !!!!!!!!!!!!!!!SECTION SEPARATOR!!!!!!!!!!!!!!! --><!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <script>
+        function subst() {
+            var vars = {};
+            var query_strings_from_url = document.location.search.substring(1).split('&');
+            for (var query_string in query_strings_from_url) {
+                if (query_strings_from_url.hasOwnProperty(query_string)) {
+                    var temp_var = query_strings_from_url[query_string].split('=', 2);
+                    vars[temp_var[0]] = decodeURI(temp_var[1]);
+                }
+            }
+            var css_selector_classes = ['page', 'frompage', 'topage', 'webpage', 'section', 'subsection', 'date', 'isodate', 'time', 'title', 'doctitle', 'sitepage', 'sitepages'];
+            for (var css_class in css_selector_classes) {
+                if (css_selector_classes.hasOwnProperty(css_class)) {
+                    var element = document.getElementsByClassName(css_selector_classes[css_class]);
+                    for (var j = 0; j < element.length; ++j) {
+                        element[j].textContent = vars[css_selector_classes[css_class]];
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px;
+        }
+
+        .start-item {
+            text-align: left;
+        }
+
+        .end-item {
+            text-align: right;
+        }
+
+        .middle-item {
+            letter-spacing:1.3px;
+
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body onload="subst()">
+    <hr>
+    <table style="width:100%">
+        <tr>
+            <td class="start-item">Página <span class="page"></span> de <span class="topage"></span></td>
+            <td class="middle-item">Este documento es una representación impresa de un CFDI</td>
+            <td class="end-item">
+                <img src="./rfcil.png" alt="zyro-image" width="100">
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
